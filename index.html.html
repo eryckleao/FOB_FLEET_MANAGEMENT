@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CTG — Sistema FOB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0A0E1A;--panel:#111827;--card:#1A2236;--border:#1E2D4A;--accent:#2563EB;--accent2:#10B981;--warn:#F59E0B;--danger:#EF4444;--text:#F1F5F9;--muted:#64748B;--subtle:#1E293B;
+  --green:#10B981;--blue:#3B82F6;--orange:#F97316;--red:#EF4444;--purple:#8B5CF6;--yellow:#F59E0B;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#050810 0%,#0A0E1A 50%,#0D1528 100%);display:flex;align-items:center;justify-content:center;z-index:1000}
+.login-box{width:420px;background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:48px;position:relative;overflow:hidden}
+.login-box::before{content:'';position:absolute;top:-80px;right:-80px;width:200px;height:200px;background:radial-gradient(circle,rgba(37,99,235,0.15) 0%,transparent 70%);pointer-events:none}
+.login-logo{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff;margin-bottom:6px;letter-spacing:-1px}
+.login-logo span{color:var(--accent)}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:36px}
+.login-label{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block}
+.login-input{width:100%;background:var(--subtle);border:1px solid var(--border);border-radius:10px;padding:13px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;margin-bottom:20px;outline:none;transition:.2s}
+.login-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,0.15)}
+.login-btn{width:100%;background:var(--accent);border:none;border-radius:10px;padding:14px;color:#fff;font-family:'Syne',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:.2s;margin-top:4px}
+.login-btn:hover{background:#1D4ED8;transform:translateY(-1px)}
+.login-err{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#FCA5A5;margin-bottom:16px;display:none}
+
+/* APP */
+#app{display:none;min-height:100vh;flex-direction:column}
+.topbar{height:60px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:20px;position:sticky;top:0;z-index:100}
+.topbar-logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.5px}
+.topbar-logo span{color:var(--accent)}
+.topbar-divider{width:1px;height:24px;background:var(--border);margin:0 4px}
+.topbar-title{font-size:13px;color:var(--muted);font-weight:400}
+.topbar-nav{display:flex;gap:4px;margin-left:auto}
+.nav-btn{padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;transition:.2s;background:transparent;color:var(--muted)}
+.nav-btn.active{background:var(--accent);color:#fff}
+.nav-btn:hover:not(.active){background:var(--subtle);color:var(--text)}
+.user-badge{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;background:var(--subtle);border:1px solid var(--border);font-size:12px;color:var(--muted);margin-left:8px}
+.logout-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;margin-left:4px;transition:.2s}
+.logout-btn:hover{color:var(--danger)}
+
+/* PAGES */
+.page{display:none;padding:28px;animation:fadeIn .3s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.cards-row{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:28px}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;position:relative;overflow:hidden;transition:.2s}
+.kpi-card:hover{border-color:#2563EB55;transform:translateY(-2px)}
+.kpi-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:0 0 14px 14px}
+.kpi-card.k-blue::after{background:var(--blue)}
+.kpi-card.k-green::after{background:var(--green)}
+.kpi-card.k-orange::after{background:var(--orange)}
+.kpi-card.k-red::after{background:var(--red)}
+.kpi-card.k-purple::after{background:var(--purple)}
+.kpi-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:14px}
+.kpi-icon.k-blue{background:rgba(59,130,246,0.15);color:var(--blue)}
+.kpi-icon.k-green{background:rgba(16,185,129,0.15);color:var(--green)}
+.kpi-icon.k-orange{background:rgba(249,115,22,0.15);color:var(--orange)}
+.kpi-icon.k-red{background:rgba(239,68,68,0.15);color:var(--red)}
+.kpi-icon.k-purple{background:rgba(139,92,246,0.15);color:var(--purple)}
+.kpi-value{font-family:'Syne',sans-serif;font-size:48px;font-weight:700;line-height:1;margin-bottom:6px;white-space:nowrap}
+.kpi-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:500}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:6px}
+
+/* SECTION TITLE */
+.sec-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.sec-badge{font-size:11px;font-weight:400;color:var(--muted);font-family:'DM Sans',sans-serif}
+
+/* CHARTS GRID */
+.charts-row{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:28px}
+.charts-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:28px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+.chart-wrap{position:relative;width:100%;height:220px}
+
+/* TABLE */
+.table-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:28px}
+.table-head{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);gap:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;border-bottom:1px solid var(--border)}
+tbody tr{border-bottom:1px solid rgba(30,45,74,0.5);transition:.15s}
+tbody tr:hover{background:rgba(37,99,235,0.04)}
+tbody td{padding:10px 16px;color:var(--text);font-size:13px}
+
+/* STATUS BADGES */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.badge-dot{width:6px;height:6px;border-radius:50%}
+.b-entregue{background:rgba(16,185,129,0.15);color:#34D399}
+.b-carregado{background:rgba(59,130,246,0.15);color:#60A5FA}
+.b-programado{background:rgba(139,92,246,0.15);color:#A78BFA}
+.b-cancelado{background:rgba(239,68,68,0.15);color:#F87171}
+.b-falta{background:rgba(249,115,22,0.15);color:#FB923C}
+.b-vazio{background:rgba(100,116,139,0.15);color:#94A3B8}
+.b-manutencao{background:rgba(245,158,11,0.15);color:#FCD34D}
+.b-rota{background:rgba(6,182,212,0.15);color:#22D3EE}
+.b-ofertar{background:rgba(168,85,247,0.15);color:#C084FC}
+
+/* INPUT PAGE */
+.form-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px}
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.field-label{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:7px;display:block}
+.field-wrap{position:relative}
+.field-input{width:100%;background:var(--subtle);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:.2s}
+.field-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,0.12)}
+.field-input::placeholder{color:var(--muted)}
+.field-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.datalist-wrap{position:relative}
+.suggestions{position:absolute;top:100%;left:0;right:0;background:#1E293B;border:1px solid var(--border);border-radius:9px;max-height:180px;overflow-y:auto;z-index:50;display:none}
+.suggestions.open{display:block}
+.sug-item{padding:9px 14px;font-size:13px;cursor:pointer;transition:.15s;color:var(--text)}
+.sug-item:hover{background:rgba(37,99,235,0.12);color:var(--blue)}
+.btn-primary{background:var(--accent);border:none;border-radius:9px;padding:11px 24px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:.2s}
+.btn-primary:hover{background:#1D4ED8;transform:translateY(-1px)}
+.btn-secondary{background:var(--subtle);border:1px solid var(--border);border-radius:9px;padding:11px 24px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;transition:.2s}
+.btn-secondary:hover{border-color:var(--accent);color:var(--blue)}
+.btn-danger{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:9px;padding:8px 14px;color:#FCA5A5;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:.2s}
+.btn-danger:hover{background:rgba(239,68,68,0.2)}
+.btn-row{display:flex;gap:10px;align-items:center}
+.success-toast{position:fixed;bottom:28px;right:28px;background:#10B981;color:#fff;border-radius:10px;padding:14px 22px;font-size:14px;font-weight:500;z-index:500;transform:translateY(80px);opacity:0;transition:.3s}
+.success-toast.show{transform:translateY(0);opacity:1}
+
+/* CARREGAMENTO PAGE */
+.alert-banner{border-radius:12px;padding:14px 18px;margin-bottom:16px;font-size:13px;display:flex;align-items:center;gap:10px;border:1px solid}
+.alert-warn{background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:#FCD34D}
+.alert-info{background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#93C5FD}
+.alert-danger{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:#FCA5A5}
+.alert-success{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.3);color:#6EE7B7}
+.veiculo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.veiculo-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;transition:.2s}
+.veiculo-card:hover{border-color:#2563EB44;transform:translateY(-2px)}
+.vcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.vcard-placa{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;letter-spacing:.5px}
+.vcard-tipo{font-size:11px;color:var(--muted);margin-top:2px}
+.vcard-motor{font-size:13px;color:var(--text);margin-bottom:4px;font-weight:500}
+.vcard-fab{font-size:12px;color:var(--muted)}
+.vcard-frota{font-size:11px;color:var(--muted);margin-top:8px;text-transform:uppercase;letter-spacing:.7px}
+
+/* INSIGHTS ROW */
+.insight-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.insight-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.insight-val{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;margin-bottom:4px}
+.insight-lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px}
+
+/* EDIT MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;display:none}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:28px;width:560px;max-height:80vh;overflow-y:auto}
+.modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:20px}
+
+/* SEARCH/FILTER */
+.filter-bar{display:flex;gap:10px;margin-bottom:16px;align-items:center}
+.search-input{flex:1;background:var(--subtle);border:1px solid var(--border);border-radius:9px;padding:9px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none}
+.search-input:focus{border-color:var(--accent)}
+.filter-select{background:var(--subtle);border:1px solid var(--border);border-radius:9px;padding:9px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;cursor:pointer}
+
+/* FLASH ALERTS */
+.flash-container{position:fixed;top:70px;right:20px;z-index:300;display:flex;flex-direction:column;gap:8px;max-width:320px}
+.flash{border-radius:10px;padding:12px 16px;font-size:13px;border:1px solid;transform:translateX(340px);opacity:0;transition:.4s;position:relative}
+.flash.show{transform:translateX(0);opacity:1}
+.flash-title{font-weight:600;margin-bottom:2px}
+.flash-close{position:absolute;top:8px;right:10px;background:none;border:none;color:inherit;cursor:pointer;font-size:16px;opacity:.7}
+
+/* SCROLL */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+
+/* DROP ZONE */
+.dropzone-wrap{margin-bottom:20px}
+.dropzone{border:2px dashed var(--border);border-radius:14px;padding:28px 24px;display:flex;align-items:center;gap:20px;cursor:pointer;transition:.25s;background:var(--card);position:relative}
+.dropzone:hover,.dropzone.dragover{border-color:var(--accent);background:rgba(37,99,235,0.07)}
+.dropzone.dragover{transform:scale(1.01);box-shadow:0 0 0 4px rgba(37,99,235,0.15)}
+.dropzone.success{border-color:var(--green);background:rgba(16,185,129,0.07)}
+.dropzone.error{border-color:var(--danger);background:rgba(239,68,68,0.07)}
+.dz-icon{width:52px;height:52px;border-radius:12px;background:rgba(37,99,235,0.12);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;transition:.25s}
+.dropzone.dragover .dz-icon{background:rgba(37,99,235,0.25);transform:scale(1.1)}
+.dropzone.success .dz-icon{background:rgba(16,185,129,0.15)}
+.dropzone.error .dz-icon{background:rgba(239,68,68,0.15)}
+.dz-text{flex:1}
+.dz-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;margin-bottom:4px}
+.dz-sub{font-size:12px;color:var(--muted);line-height:1.5}
+.dz-input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.dz-badge{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.dz-tag{font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid var(--border);color:var(--muted);background:var(--subtle)}
+.dz-preview{background:var(--subtle);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-top:12px;font-size:12px;color:var(--text);display:none}
+.dz-preview.show{display:block}
+.dz-preview-title{font-weight:600;margin-bottom:8px;font-size:13px;color:var(--text)}
+.dz-col-map{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;margin-bottom:12px}
+.dz-col-item{display:flex;align-items:center;gap:6px;font-size:12px}
+.dz-col-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dz-actions{display:flex;gap:10px;margin-top:12px}
+.dz-confirm{background:var(--accent);border:none;border-radius:8px;padding:9px 20px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:.2s}
+.dz-confirm:hover{background:#1D4ED8}
+.dz-discard{background:var(--subtle);border:1px solid var(--border);border-radius:8px;padding:9px 16px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:.2s}
+.dz-discard:hover{color:var(--danger);border-color:var(--danger)}
+.dz-mode-toggle{display:flex;gap:6px;margin-bottom:10px}
+.dz-mode-btn{padding:5px 14px;border-radius:6px;border:1px solid var(--border);background:var(--subtle);color:var(--muted);font-size:12px;cursor:pointer;transition:.2s}
+.dz-mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">CTG<span>.</span>FOB</div>
+    <div class="login-sub">Sistema de Controle de Frota e Pedidos FOB</div>
+    <div class="login-err" id="login-err">Usuário ou senha incorretos. Tente novamente.</div>
+    <label class="login-label">Usuário</label>
+    <input class="login-input" id="login-user" type="text" placeholder="CTG_teste" autocomplete="username">
+    <label class="login-label">Senha</label>
+    <input class="login-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+    <button class="login-btn" onclick="doLogin()">Entrar no Sistema</button>
+  </div>
+</div>
+
+<!-- FLASH ALERTS CONTAINER -->
+<div class="flash-container" id="flash-container"></div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">CTG<span>.</span>FOB</div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-title">Sistema de Controle de Frota</div>
+    <div class="topbar-nav">
+      <button class="nav-btn active" onclick="showPage('dashboard',this)">📊 Dashboard</button>
+      <button class="nav-btn" onclick="showPage('pedidos',this)">📋 Pedidos FOB</button>
+      <button class="nav-btn" onclick="showPage('carregamento',this)">🚛 Carregamento</button>
+    </div>
+    <div class="user-badge">
+      <span>👤</span>
+      <span id="user-name-display">CTG_teste</span>
+      <button class="logout-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD PAGE -->
+  <div class="page active" id="page-dashboard">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 20px">
+      <span style="font-size:13px;font-weight:500;color:var(--muted);white-space:nowrap">📅 Filtrar por data de carregamento:</span>
+      <input type="date" id="dash-filter-date" class="filter-select" onchange="renderDashboard()" style="background:var(--subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;cursor:pointer">
+      <button onclick="clearDashFilter()" style="background:transparent;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:6px 10px;border-radius:6px;transition:.2s" onmouseover="this.style.color='#EF4444'" onmouseout="this.style.color='var(--muted)'">✕ Limpar</button>
+      <span id="dash-filter-label" style="font-size:12px;color:var(--accent);font-weight:500;margin-left:4px"></span>
+      <span style="margin-left:auto;font-size:12px;color:var(--muted)" id="dash-total-label"></span>
+    </div>
+    <div class="cards-row">
+      <div class="kpi-card k-blue">
+        <div class="kpi-icon k-blue">🚛</div>
+        <div class="kpi-value" id="kpi-carregado" style="color:#60A5FA;font-size:48px;min-width:60px">—</div>
+        <div class="kpi-label">Carregados</div>
+        <div class="kpi-sub">Aguardando entrega</div>
+      </div>
+      <div class="kpi-card k-green">
+        <div class="kpi-icon k-green">✅</div>
+        <div class="kpi-value" id="kpi-entregue" style="color:#34D399;font-size:48px;min-width:60px">—</div>
+        <div class="kpi-label">Entregues</div>
+        <div class="kpi-sub">Concluídos com sucesso</div>
+      </div>
+      <div class="kpi-card k-purple">
+        <div class="kpi-icon k-purple">🗓️</div>
+        <div class="kpi-value" id="kpi-programado" style="color:#A78BFA;font-size:48px;min-width:60px">—</div>
+        <div class="kpi-label">Programados</div>
+        <div class="kpi-sub">Agendados para entrega</div>
+      </div>
+      <div class="kpi-card k-orange">
+        <div class="kpi-icon k-orange">⏳</div>
+        <div class="kpi-value" id="kpi-falta" style="color:#FB923C;font-size:48px;min-width:60px">—</div>
+        <div class="kpi-label">Falta Programar</div>
+        <div class="kpi-sub">Necessitam atenção</div>
+      </div>
+      <div class="kpi-card k-red">
+        <div class="kpi-icon k-red">❌</div>
+        <div class="kpi-value" id="kpi-cancelado" style="color:#F87171;font-size:48px;min-width:60px">—</div>
+        <div class="kpi-label">Cancelados</div>
+        <div class="kpi-sub">Pedidos cancelados</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="sec-title">Distribuição por Status <span class="sec-badge">Pedidos FOB</span></div>
+        <div class="chart-wrap"><canvas id="chart-status" role="img" aria-label="Gráfico de pedidos por status"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="sec-title">Eficiência da Operação <span class="sec-badge">% do total</span></div>
+        <div class="chart-wrap"><canvas id="chart-eficiencia" role="img" aria-label="Gráfico de eficiência operacional"></canvas></div>
+      </div>
+    </div>
+
+    <div class="charts-row-3">
+      <div class="chart-card">
+        <div class="sec-title">Top Clientes <span class="sec-badge">por volume de pedidos</span></div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chart-clientes" role="img" aria-label="Pedidos por cliente"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="sec-title">Fábricas de Origem <span class="sec-badge">distribuição</span></div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chart-fabricas" role="img" aria-label="Pedidos por fábrica"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="sec-title">Status da Frota <span class="sec-badge">carregamento atual</span></div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chart-frota" role="img" aria-label="Status da frota"></canvas></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-head">
+        <div class="sec-title" style="margin:0">Últimos Pedidos FOB</div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Data Carg.</th><th>Data Entrega</th><th>Fábrica</th><th>Cliente</th><th>Cidade</th><th>Placa</th><th>Status</th><th>Localização</th>
+        </tr></thead>
+        <tbody id="dash-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PEDIDOS PAGE -->
+  <div class="page" id="page-pedidos">
+    <div class="form-card">
+      <div class="sec-title">➕ Novo Pedido FOB</div>
+      <div class="form-grid">
+        <div>
+          <label class="field-label">Data de Carregamento</label>
+          <input type="date" class="field-input" id="f-data-carg">
+        </div>
+        <div>
+          <label class="field-label">Data de Entrega</label>
+          <input type="date" class="field-input" id="f-data-ent">
+        </div>
+        <div>
+          <label class="field-label">Volume</label>
+          <input type="number" class="field-input" id="f-volume" placeholder="Ex: 38">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label class="field-label">Fábrica</label>
+          <div class="datalist-wrap">
+            <input class="field-input" id="f-fabrica" placeholder="Digite ou selecione..." autocomplete="off" oninput="showSug('f-fabrica','sug-fabrica',FABRICAS)" onfocus="showSug('f-fabrica','sug-fabrica',FABRICAS)" onblur="hideSug('sug-fabrica')">
+            <div class="suggestions" id="sug-fabrica"></div>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">Cliente</label>
+          <div class="datalist-wrap">
+            <input class="field-input" id="f-cliente" placeholder="Digite ou selecione..." autocomplete="off" oninput="showSug('f-cliente','sug-cliente',CLIENTES)" onfocus="showSug('f-cliente','sug-cliente',CLIENTES)" onblur="hideSug('sug-cliente')">
+            <div class="suggestions" id="sug-cliente"></div>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">Cidade</label>
+          <div class="datalist-wrap">
+            <input class="field-input" id="f-cidade" placeholder="Digite ou selecione..." autocomplete="off" oninput="showSug('f-cidade','sug-cidade',CIDADES)" onfocus="showSug('f-cidade','sug-cidade',CIDADES)" onblur="hideSug('sug-cidade')">
+            <div class="suggestions" id="sug-cidade"></div>
+          </div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label class="field-label">Placa</label>
+          <div class="datalist-wrap">
+            <input class="field-input" id="f-placa" placeholder="Ex: SNL3F70" autocomplete="off" oninput="showSug('f-placa','sug-placa',PLACAS);autoFillMotoristaFOB()" onfocus="showSug('f-placa','sug-placa',PLACAS)" onblur="hideSug('sug-placa')" style="text-transform:uppercase">
+            <div class="suggestions" id="sug-placa"></div>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">Nome do Motorista</label>
+          <div class="datalist-wrap">
+            <input class="field-input" id="f-motorista" placeholder="Nome do motorista..." autocomplete="off" oninput="showSug('f-motorista','sug-motorista',MOTORISTAS)" onfocus="showSug('f-motorista','sug-motorista',MOTORISTAS)" onblur="hideSug('sug-motorista')">
+            <div class="suggestions" id="sug-motorista"></div>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">Status do Pedido</label>
+          <select class="field-input field-select" id="f-status">
+            <option value="">Selecione...</option>
+            <option>CARREGADO</option>
+            <option>ENTREGUE</option>
+            <option>PROGRAMADO</option>
+            <option>FALTA PROGRAMAR</option>
+            <option>CANCELADO</option>
+            <option>VAZIO</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Localização / Comentário</label>
+          <input class="field-input" id="f-local" placeholder="Ex: Entrega 05/05, Aguardando descarga...">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="addPedido()">Salvar Pedido</button>
+        <button class="btn-secondary" onclick="clearForm()">Limpar</button>
+        <button class="btn-secondary" onclick="exportData()">📥 Exportar CSV</button>
+        <span id="record-count" style="margin-left:auto;font-size:12px;color:var(--muted)"></span>
+      </div>
+    </div>
+
+    <!-- DROPZONE IMPORTAÇÃO -->
+    <div class="dropzone-wrap">
+      <div class="dropzone" id="dropzone" ondragover="dzDragOver(event)" ondragleave="dzDragLeave(event)" ondrop="dzDrop(event)">
+        <input type="file" class="dz-input" id="dz-file-input" accept=".xlsx,.xls,.csv" onchange="dzFileSelect(event)">
+        <div class="dz-icon" id="dz-icon">📂</div>
+        <div class="dz-text">
+          <div class="dz-title" id="dz-title">Importar Base de Dados</div>
+          <div class="dz-sub" id="dz-sub">Arraste e solte um arquivo <strong>Excel (.xlsx)</strong> ou <strong>CSV UTF-8 (.csv)</strong> aqui, ou clique para selecionar</div>
+          <div class="dz-badge">
+            <span class="dz-tag">📊 .xlsx / .xls</span>
+            <span class="dz-tag">📄 .csv UTF-8</span>
+            <span class="dz-tag">Colunas mapeadas automaticamente</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dz-preview" id="dz-preview">
+        <div class="dz-preview-title" id="dz-preview-title"></div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px" id="dz-col-info"></div>
+        <div style="font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Colunas detectadas:</div>
+        <div class="dz-col-map" id="dz-col-map"></div>
+        <div style="font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Modo de importação:</div>
+        <div class="dz-mode-toggle">
+          <button class="dz-mode-btn active" id="mode-substituir" onclick="setDzMode('substituir')">🔄 Substituir tudo</button>
+          <button class="dz-mode-btn" id="mode-acrescentar" onclick="setDzMode('acrescentar')">➕ Acrescentar aos existentes</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px" id="dz-mode-desc">Os pedidos atuais serão substituídos pela nova base importada.</div>
+        <div style="font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Prévia (primeiras 5 linhas):</div>
+        <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--border)">
+          <table style="min-width:100%" id="dz-preview-table">
+            <thead id="dz-preview-thead"></thead>
+            <tbody id="dz-preview-tbody"></tbody>
+          </table>
+        </div>
+        <div class="dz-actions">
+          <button class="dz-confirm" onclick="dzConfirmImport()">✅ Confirmar Importação</button>
+          <button class="dz-discard" onclick="dzDiscard()">✕ Descartar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <input class="search-input" id="pedidos-search" placeholder="🔍 Buscar por placa, cliente, cidade..." oninput="renderPedidosTable()">
+      <select class="filter-select" id="filter-status" onchange="renderPedidosTable()">
+        <option value="">Todos os status</option>
+        <option>CARREGADO</option>
+        <option>ENTREGUE</option>
+        <option>PROGRAMADO</option>
+        <option>FALTA PROGRAMAR</option>
+        <option>CANCELADO</option>
+        <option>VAZIO</option>
+      </select>
+      <select class="filter-select" id="filter-cliente" onchange="renderPedidosTable()">
+        <option value="">Todos os clientes</option>
+      </select>
+    </div>
+    <div class="filter-bar" style="margin-top:-8px">
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.7px;font-weight:500">📅 Carregamento:</span>
+      <input type="date" class="filter-select" id="filter-dc-de" onchange="renderPedidosTable()" style="flex:1">
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.7px;font-weight:500;margin-left:8px">🚚 Entrega:</span>
+      <input type="date" class="filter-select" id="filter-de-de" onchange="renderPedidosTable()" style="flex:1">
+      <button class="btn-secondary" onclick="clearDateFilters()" style="white-space:nowrap;padding:8px 14px;font-size:12px">✕ Limpar datas</button>
+    </div>
+
+    <div class="table-card">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Data Carg.</th><th>Data Entrega</th><th>Fábrica</th><th>Cliente</th><th>Cidade</th><th>Placa</th><th>Motorista</th><th>Status</th><th>Previsão de Entrega</th><th>Vol.</th><th>Localização</th><th>Ações</th>
+        </tr></thead>
+        <tbody id="pedidos-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CARREGAMENTO PAGE -->
+  <div class="page" id="page-carregamento">
+    <div id="alert-area"></div>
+
+    <div class="insight-row">
+      <div class="insight-card">
+        <div class="insight-val" style="color:var(--blue)" id="c-carregado">—</div>
+        <div class="insight-lbl">Carregados</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-val" style="color:var(--purple)" id="c-programado">—</div>
+        <div class="insight-lbl">Programados</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-val" style="color:var(--yellow)" id="c-manutencao">—</div>
+        <div class="insight-lbl">Manutenção</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-val" style="color:var(--green)" id="c-rota">—</div>
+        <div class="insight-lbl">Em Rota</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="chart-card">
+        <div class="sec-title">Próprios vs Agregados <span class="sec-badge">distribuição da frota</span></div>
+        <div class="chart-wrap" style="height:180px"><canvas id="chart-frota-tipo" role="img" aria-label="Distribuição de frota própria e agregada"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="sec-title">Status Geral dos Veículos</div>
+        <div class="chart-wrap" style="height:180px"><canvas id="chart-carg-status" role="img" aria-label="Status dos veículos"></canvas></div>
+      </div>
+    </div>
+
+    <div class="form-card" style="margin-bottom:20px">
+      <div class="sec-title">✏️ Atualizar Status de Veículo</div>
+      <div class="form-grid">
+        <div>
+          <label class="field-label">Placa</label>
+          <div class="datalist-wrap">
+            <input class="field-input" id="c-placa" placeholder="Placa do veículo..." autocomplete="off" oninput="autoFillVeiculo()" style="text-transform:uppercase">
+          </div>
+        </div>
+        <div>
+          <label class="field-label">Motorista</label>
+          <input class="field-input" id="c-motorista" placeholder="Nome do motorista" readonly style="opacity:.7">
+        </div>
+        <div>
+          <label class="field-label">Tipo</label>
+          <input class="field-input" id="c-tipo" placeholder="Tipo do veículo" readonly style="opacity:.7">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label class="field-label">Novo Status</label>
+          <select class="field-input field-select" id="c-status-new">
+            <option value="">Selecione...</option>
+            <option>PROGRAMADO</option>
+            <option>CARREGADO</option>
+            <option>MANUTENÇÃO</option>
+            <option>ROTA</option>
+            <option>OFERTAR</option>
+            <option>VAZIO</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Fábrica</label>
+          <div class="datalist-wrap">
+            <input class="field-input" id="c-fabrica" placeholder="Fábrica..." autocomplete="off" oninput="showSug('c-fabrica','sug-cfabrica',FABRICAS_CARG)" onfocus="showSug('c-fabrica','sug-cfabrica',FABRICAS_CARG)" onblur="hideSug('sug-cfabrica')">
+            <div class="suggestions" id="sug-cfabrica"></div>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">Localização / Observação</label>
+          <input class="field-input" id="c-obs" placeholder="Observação...">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="updateVeiculo()">Atualizar Veículo</button>
+        <button class="btn-secondary" onclick="exportCarregamento()">📥 Exportar CSV</button>
+      </div>
+    </div>
+
+    <div class="sec-title">🚛 Painel de Veículos</div>
+    <div class="filter-bar">
+      <input class="search-input" id="veiculo-search" placeholder="🔍 Buscar placa ou motorista..." oninput="renderVeiculos()">
+      <select class="filter-select" id="filter-frota" onchange="renderVeiculos()">
+        <option value="">Toda a frota</option>
+        <option>PROPRIA</option>
+        <option>AGREGADO</option>
+        <option>TERCEIRO</option>
+      </select>
+      <select class="filter-select" id="filter-cstatus" onchange="renderVeiculos()">
+        <option value="">Todos os status</option>
+        <option>PROGRAMADO</option>
+        <option>CARREGADO</option>
+        <option>MANUTENÇÃO</option>
+        <option>ROTA</option>
+        <option>OFERTAR</option>
+        <option>VAZIO</option>
+      </select>
+    </div>
+    <div class="veiculo-grid" id="veiculo-grid"></div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Editar Pedido</div>
+    <input type="hidden" id="edit-idx">
+    <div class="form-grid">
+      <div><label class="field-label">Data Carg.</label><input type="date" class="field-input" id="e-data-carg"></div>
+      <div><label class="field-label">Data Entrega</label><input type="date" class="field-input" id="e-data-ent"></div>
+      <div><label class="field-label">Volume</label><input type="number" class="field-input" id="e-volume"></div>
+    </div>
+    <div class="form-grid">
+      <div><label class="field-label">Fábrica</label><input class="field-input" id="e-fabrica"></div>
+      <div><label class="field-label">Cliente</label><input class="field-input" id="e-cliente"></div>
+      <div><label class="field-label">Cidade</label><input class="field-input" id="e-cidade"></div>
+    </div>
+    <div class="form-grid">
+      <div><label class="field-label">Placa</label><input class="field-input" id="e-placa" style="text-transform:uppercase"></div>
+      <div><label class="field-label">Nome do Motorista</label><input class="field-input" id="e-motorista" placeholder="Nome do motorista..."></div>
+      <div><label class="field-label">Status</label>
+        <select class="field-input field-select" id="e-status">
+          <option>CARREGADO</option><option>ENTREGUE</option><option>PROGRAMADO</option>
+          <option>FALTA PROGRAMAR</option><option>CANCELADO</option><option>VAZIO</option>
+        </select>
+      </div>
+      <div><label class="field-label">Localização</label><input class="field-input" id="e-local"></div>
+    </div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn-primary" onclick="saveEdit()">Salvar Alterações</button>
+      <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="success-toast" id="toast">✅ Pedido salvo com sucesso!</div>
+
+<!-- DRILLDOWN MODAL -->
+<div class="modal-overlay" id="drilldown-modal">
+  <div class="modal-box" style="width:720px;max-width:95vw">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div class="modal-title" style="margin:0" id="dd-title">Drilldown</div>
+      <button onclick="document.getElementById('drilldown-modal').classList.remove('open')" style="background:var(--subtle);border:1px solid var(--border);border-radius:8px;padding:6px 14px;color:var(--muted);cursor:pointer;font-size:13px">✕ Fechar</button>
+    </div>
+    <div id="dd-summary" style="font-size:12px;color:var(--muted);margin-bottom:14px"></div>
+    <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--border)">
+      <table style="min-width:100%">
+        <thead id="dd-thead"></thead>
+        <tbody id="dd-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA SEED FROM SPREADSHEET ───────────────────────────────────────────────
+const FABRICAS = ['NACIONAL','CSN CAAPORA','MIN PAULISTA','VOTORANTIM','GALPAO'];
+const CLIENTES = ['SUPERMIX','FK MIX','SOMIX','MASSA PRONTA','QUARTZOLIT','SAINT GOBAIN','VIAPOL','BRASILIT','LE MIX'];
+const CIDADES = ['ABREU E LIMA','CARUARU','JOAO PESSOA','MACAIBA','SAO GONÇALO','IPOJUCA','NAZARE DA MATA','CAMAÇARI','CANDEIAS','RECIFE','ARAPIRACA','JABOATAO','MACEIO','PORTO DE PEDRAS','SAO JOSE DA TAPERA','PETROLINA','PACATUBA'];
+const PLACAS = ['JUL6C91','RZH1B07','SNL7G22','SOA1B01','SNL3F70','SNV4G89','RZF9J72','KJC6572','SOZ9A50','RZY6J01','SNY9I53','SNV4D43','SOS6C22','SOS4I62','SOH6B27','SNV8C12','SOL6F13','HFH2J00','SNZ1E99','SNX5E69','QYN3B77','SOG9B46','RZS7A50','RZP4H92','RZF3I36','SOM2E32','KLB3D25','KGY8G20','PFK8D08','KJM1592','FFF3198','GLJ7C08','KHM2G69','SNN6D35','SNN6E65','RZH1B67','RZF7J21','SOI6G43','SOG9A36','RZL2D16','UHN8H61','SNP8E25'];
+const FABRICAS_CARG = ['INTERCEMENT - SMC','NACIONAL','CSN CAAPORÃ','VOTORANTIM - LARANJEIRAS','CSN ALHANDRA','MINERAÇÃO PAULISTA','GALPAO'];
+const MOTORISTAS = ['ROBERTO LOURENÇO','JEFFERSON FELIX VELOSO','JOSIANO DO NASCIMENTO','CASSIO HENRIQUE','GINALDO MANOEL DE SANTANA','WANDERLAN BATISTA','FRANCISCO ALENCAR','RAFAEL MARTINS','FLAVIO ANTONIO DA SILVA','PEDRO SILVA DOS SANTOS','JOSE FELIPE','WASHINGTON BARBOSA DA SILVA','CICERO','HERLON','ALBERICO OLIVEIRA','ALEXANDRO DOS SANTOS','FABIO ARAUJO DA SILVA','EDINALDO SEVERINO','FABIANO BARBOZA','ANTONIO GERALDO','INALDO GOMES','JOSE WAGNER','MANOEL LUIS','FABIO SEVERINO','ALFREDO SANTOS FERREIRA FILHO','JEFERSON MARIANO','JOAO VICENTE','JOSE FERNANDO','JOSINALDO PEREIRA'];
+
+// Initial data from spreadsheet
+const SEED_PEDIDOS = [
+  {dc:'2026-05-02',de:'2026-05-04',fab:'NACIONAL',cli:'SUPERMIX',cid:'ABREU E LIMA',placa:'JUL6C91',status:'ENTREGUE',loc:'',vol:''},
+  {dc:'2026-05-02',de:'2026-05-04',fab:'NACIONAL',cli:'SUPERMIX',cid:'ABREU E LIMA',placa:'JUL6C91',status:'ENTREGUE',loc:'',vol:''},
+  {dc:'2026-05-02',de:'2026-05-04',fab:'CSN CAAPORA',cli:'SUPERMIX',cid:'CARUARU',placa:'RZH1B07',status:'ENTREGUE',loc:'',vol:'48'},
+  {dc:'2026-05-02',de:'2026-05-04',fab:'CSN CAAPORA',cli:'SUPERMIX',cid:'CARUARU',placa:'SNL7G22',status:'ENTREGUE',loc:'',vol:'38'},
+  {dc:'2026-05-02',de:'2026-05-04',fab:'CSN CAAPORA',cli:'SUPERMIX',cid:'CARUARU',placa:'SOA1B01',status:'CARREGADO',loc:'ENTREGA 05/05',vol:'38'},
+  {dc:'2026-05-02',de:'2026-05-04',fab:'NACIONAL',cli:'FK MIX',cid:'JOAO PESSOA',placa:'',status:'CANCELADO',loc:'',vol:''},
+  {dc:'2026-05-02',de:'2026-05-04',fab:'NACIONAL',cli:'SUPERMIX',cid:'JOAO PESSOA',placa:'SNL3F70',status:'CARREGADO',loc:'ENTREGA 05/05',vol:''},
+  {dc:'2026-05-02',de:'2026-05-04',fab:'CSN CAAPORA',cli:'SOMIX',cid:'MACAIBA',placa:'SNV4G89',status:'ENTREGUE',loc:'',vol:''},
+  {dc:'2026-05-02',de:'2026-05-04',fab:'CSN CAAPORA',cli:'SOMIX',cid:'MACAIBA',placa:'RZF9J72',status:'ENTREGUE',loc:'',vol:''},
+  {dc:'2026-05-02',de:'2026-05-04',fab:'CSN CAAPORA',cli:'SOMIX',cid:'SAO GONÇALO',placa:'KJC6572',status:'ENTREGUE',loc:'',vol:''},
+  {dc:'2026-05-02',de:'2026-05-04',fab:'CSN CAAPORA',cli:'SOMIX',cid:'SAO GONÇALO',placa:'SOZ9A50',status:'ENTREGUE',loc:'',vol:''},
+  {dc:'2026-05-04',de:'2026-05-05',fab:'NACIONAL',cli:'SUPERMIX',cid:'ABREU E LIMA',placa:'JUL6C91',status:'ENTREGUE',loc:'',vol:''},
+  {dc:'2026-05-04',de:'2026-05-05',fab:'NACIONAL',cli:'SUPERMIX',cid:'ABREU E LIMA',placa:'JUL6C91',status:'ENTREGUE',loc:'ENTREGA 06/05',vol:''},
+  {dc:'2026-05-04',de:'2026-05-05',fab:'NACIONAL',cli:'SUPERMIX',cid:'IPOJUCA',placa:'SNL3F70',status:'ENTREGUE',loc:'ENTREGA 06/05',vol:''},
+  {dc:'2026-05-04',de:'2026-05-05',fab:'NACIONAL',cli:'SUPERMIX',cid:'IPOJUCA',placa:'RZY6J01',status:'ENTREGUE',loc:'ENTREGA 06/05',vol:''},
+  {dc:'2026-05-04',de:'2026-05-05',fab:'NACIONAL',cli:'SUPERMIX',cid:'IPOJUCA',placa:'SNY9I53',status:'ENTREGUE',loc:'ENTREGA 06/05',vol:''},
+  {dc:'2026-05-04',de:'2026-05-05',fab:'NACIONAL',cli:'SUPERMIX',cid:'IPOJUCA',placa:'SNV4D43',status:'PROGRAMADO',loc:'ENTREGA 06/05',vol:''},
+  {dc:'2026-05-04',de:'2026-05-05',fab:'NACIONAL',cli:'FK MIX',cid:'JOAO PESSOA',placa:'SOS6C22',status:'PROGRAMADO',loc:'Agendado 03h 05/05',vol:''},
+  {dc:'2026-05-05',de:'2026-05-06',fab:'NACIONAL',cli:'SUPERMIX',cid:'ABREU E LIMA',placa:'JUL6C91',status:'CARREGADO',loc:'ENTREGA 06/05',vol:''},
+  {dc:'2026-05-05',de:'2026-05-06',fab:'NACIONAL',cli:'SUPERMIX',cid:'RECIFE',placa:'SNL3F70',status:'PROGRAMADO',loc:'',vol:''},
+  {dc:'2026-05-05',de:'2026-05-06',fab:'CSN CAAPORA',cli:'SUPERMIX',cid:'CARUARU',placa:'RZH1B07',status:'FALTA PROGRAMAR',loc:'',vol:''},
+  {dc:'2026-05-06',de:'2026-05-07',fab:'NACIONAL',cli:'SUPERMIX',cid:'ABREU E LIMA',placa:'JUL6C91',status:'CARREGADO',loc:'',vol:''},
+  {dc:'2026-05-06',de:'2026-05-07',fab:'VOTORANTIM',cli:'BRASILIT',cid:'RECIFE',placa:'SNX5E69',status:'FALTA PROGRAMAR',loc:'',vol:''},
+  {dc:'2026-05-07',de:'2026-05-08',fab:'NACIONAL',cli:'SUPERMIX',cid:'ABREU E LIMA',placa:'JUL6C91',status:'CARREGADO',loc:'',vol:''},
+  {dc:'2026-05-07',de:'2026-05-08',fab:'NACIONAL',cli:'FK MIX',cid:'JOAO PESSOA',placa:'SOS4I62',status:'FALTA PROGRAMAR',loc:'',vol:''},
+];
+
+const SEED_CARREGAMENTO = [
+  {frota:'PROPRIA',placa:'QYN3B77',motorista:'ROBERTO LOURENÇO',tipo:'LS',fabrica:'INTERCEMENT - SMC',status:'PROGRAMADO',destino:'',cidade:'',obs:''},
+  {frota:'PROPRIA',placa:'RZF9J72',motorista:'JEFFERSON FELIX VELOSO',tipo:'LS',fabrica:'NACIONAL',status:'PROGRAMADO',destino:'SUPERMIX',cidade:'JOAO PESSOA',obs:'CARREGANDO'},
+  {frota:'PROPRIA',placa:'SOG9B46',motorista:'JOSIANO DO NASCIMENTO',tipo:'WANDERLEIA',fabrica:'CSN CAAPORÃ',status:'PROGRAMADO',destino:'SUPERMIX',cidade:'OLINDA',obs:''},
+  {frota:'PROPRIA',placa:'RZS7A50',motorista:'CASSIO HENRIQUE',tipo:'4 EIXOS',fabrica:'VOTORANTIM - LARANJEIRAS',status:'MANUTENÇÃO',destino:'BRASILIT',cidade:'RECIFE',obs:''},
+  {frota:'PROPRIA',placa:'RZP4H92',motorista:'GINALDO MANOEL DE SANTANA',tipo:'LS',fabrica:'CSN CAAPORÃ',status:'VAZIO',destino:'LE MIX',cidade:'SAO JOSE DA TAPERA',obs:'RETORNANDO'},
+  {frota:'PROPRIA',placa:'RZF3I36',motorista:'WANDERLAN BATISTA',tipo:'BITREM',fabrica:'CSN CAAPORÃ',status:'CARREGADO',destino:'SUPERMIX',cidade:'RIO FORMOSO',obs:'AGUARDANDO DESCARGA'},
+  {frota:'PROPRIA',placa:'SOM2E32',motorista:'FRANCISCO ALENCAR',tipo:'4 EIXOS',fabrica:'NACIONAL',status:'CARREGADO',destino:'CONCRECON',cidade:'MACAIBA',obs:'AGUARDANDO DESCARGA'},
+  {frota:'AGREGADO',placa:'KLB3D25',motorista:'RAFAEL MARTINS',tipo:'LS',fabrica:'VOTORANTIM - LARANJEIRAS',status:'PROGRAMADO',destino:'BRASILIT',cidade:'RECIFE',obs:''},
+  {frota:'AGREGADO',placa:'KGY8G20',motorista:'FLAVIO ANTONIO DA SILVA',tipo:'LS',fabrica:'CSN ALHANDRA',status:'CARREGADO',destino:'CONCRECON',cidade:'MACAIBA',obs:'AGUARDANDO DESCARGA'},
+  {frota:'AGREGADO',placa:'PFK8D08',motorista:'PEDRO SILVA DOS SANTOS',tipo:'WANDERLEIA',fabrica:'CSN CAAPORÃ',status:'CARREGADO',destino:'LE MIX',cidade:'JABOATÃO',obs:'NO CLIENTE'},
+  {frota:'AGREGADO',placa:'KJM1592',motorista:'JOSE FELIPE',tipo:'BITREM',fabrica:'',status:'MANUTENÇÃO',destino:'',cidade:'',obs:''},
+  {frota:'AGREGADO',placa:'FFF3198',motorista:'WASHINGTON BARBOSA DA SILVA',tipo:'BITREM',fabrica:'',status:'OFERTAR',destino:'',cidade:'',obs:''},
+  {frota:'AGREGADO',placa:'GLJ7C08',motorista:'CICERO',tipo:'LS',fabrica:'NACIONAL',status:'ROTA',destino:'BRASILIT',cidade:'RECIFE',obs:''},
+  {frota:'AGREGADO',placa:'KHM2G69',motorista:'HERLON',tipo:'LS',fabrica:'MINERAÇÃO PAULISTA',status:'ROTA',destino:'BRASILIT',cidade:'RECIFE',obs:''},
+  {frota:'PROPRIA',placa:'SNN6D35',motorista:'ALBERICO OLIVEIRA',tipo:'LS',fabrica:'VOTORANTIM - LARANJEIRAS',status:'PROGRAMADO',destino:'BRASILIT',cidade:'RECIFE',obs:''},
+  {frota:'PROPRIA',placa:'SNN6E65',motorista:'ALEXANDRO DOS SANTOS',tipo:'LS',fabrica:'VOTORANTIM - LARANJEIRAS',status:'PROGRAMADO',destino:'BRASILIT',cidade:'RECIFE',obs:''},
+  {frota:'PROPRIA',placa:'RZH1B67',motorista:'FABIO ARAUJO DA SILVA',tipo:'LS',fabrica:'CSN CAAPORÃ',status:'CARREGADO',destino:'CONCRECON',cidade:'SALGUEIRO',obs:'AGUARDANDO DESCARGA'},
+  {frota:'PROPRIA',placa:'RZF7J21',motorista:'EDINALDO SEVERINO',tipo:'LS',fabrica:'NACIONAL',status:'PROGRAMADO',destino:'SUPERMIX',cidade:'IPOJUCA',obs:'FABRICA'},
+  {frota:'PROPRIA',placa:'SNX5E69',motorista:'FABIANO BARBOZA',tipo:'LS',fabrica:'CSN CAAPORÃ',status:'CARREGADO',destino:'SUPERMIX',cidade:'RIO FORMOSO',obs:'RECIFE'},
+  {frota:'PROPRIA',placa:'SOI6G43',motorista:'ANTONIO GERALDO',tipo:'LS',fabrica:'NACIONAL',status:'PROGRAMADO',destino:'',cidade:'',obs:''},
+  {frota:'PROPRIA',placa:'SNL3F70',motorista:'INALDO GOMES',tipo:'LS',fabrica:'NACIONAL',status:'CARREGADO',destino:'SUPERMIX',cidade:'IPOJUCA',obs:''},
+  {frota:'PROPRIA',placa:'SOG9A36',motorista:'JOSE WAGNER',tipo:'LS',fabrica:'NACIONAL',status:'PROGRAMADO',destino:'',cidade:'',obs:''},
+  {frota:'PROPRIA',placa:'RZL2D16',motorista:'MANOEL LUIS',tipo:'LS',fabrica:'NACIONAL',status:'PROGRAMADO',destino:'',cidade:'',obs:''},
+  {frota:'PROPRIA',placa:'UHN8H61',motorista:'FABIO SEVERINO',tipo:'LS',fabrica:'NACIONAL',status:'CARREGADO',destino:'',cidade:'',obs:''},
+  {frota:'PROPRIA',placa:'SNP8E25',motorista:'ALFREDO SANTOS FERREIRA FILHO',tipo:'LS',fabrica:'NACIONAL',status:'PROGRAMADO',destino:'',cidade:'',obs:''},
+  {frota:'PROPRIA',placa:'RZJ6G14',motorista:'JEFERSON MARIANO',tipo:'LS',fabrica:'NACIONAL',status:'CARREGADO',destino:'',cidade:'',obs:''},
+  {frota:'PROPRIA',placa:'SNV4D43',motorista:'JOAO VICENTE',tipo:'LS',fabrica:'NACIONAL',status:'CARREGADO',destino:'',cidade:'',obs:''},
+  {frota:'PROPRIA',placa:'RZY6J01',motorista:'JOSE FERNANDO',tipo:'4 EIXOS',fabrica:'NACIONAL',status:'PROGRAMADO',destino:'',cidade:'',obs:''},
+  {frota:'PROPRIA',placa:'SNV8C12',motorista:'JOSINALDO PEREIRA',tipo:'LS',fabrica:'NACIONAL',status:'CARREGADO',destino:'',cidade:'',obs:''},
+];
+
+// ─── STATE / DB ────────────────────────────────────────────────────────────────
+let pedidos = JSON.parse(localStorage.getItem('ctg_pedidos') || 'null') || [...SEED_PEDIDOS];
+let carregamento = JSON.parse(localStorage.getItem('ctg_carg') || 'null') || [...SEED_CARREGAMENTO];
+let charts = {};
+let _uidCounter = Date.now();
+
+function genUid(){ return ++_uidCounter; }
+
+// Ensure every existing pedido has a unique _uid
+pedidos.forEach(p=>{ if(!p._uid) p._uid = genUid(); });
+
+function save(){
+  localStorage.setItem('ctg_pedidos', JSON.stringify(pedidos));
+  localStorage.setItem('ctg_carg', JSON.stringify(carregamento));
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+function doLogin(){
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value.trim();
+  const err = document.getElementById('login-err');
+  if(u === 'CTG_teste' && p === 'Ctg@12345'){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='flex';
+    document.getElementById('app').style.flexDirection='column';
+    document.getElementById('user-name-display').textContent=u;
+    initApp();
+  } else {
+    err.style.display='block';
+    setTimeout(()=>err.style.display='none',3000);
+  }
+}
+document.getElementById('login-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('login-user').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+function doLogout(){
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pass').value='';
+}
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+function showPage(id, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='dashboard') renderDashboard();
+  if(id==='pedidos') renderPedidosTable();
+  if(id==='carregamento') renderCarregamento();
+}
+
+// ─── STATUS HELPERS ───────────────────────────────────────────────────────────
+function normalizeStatus(s){ return (s||'').trim().toUpperCase(); }
+function statusBadge(s){
+  const n = normalizeStatus(s);
+  if(n==='ENTREGUE') return '<span class="badge b-entregue">✅ Entregue</span>';
+  if(n==='CARREGADO') return '<span class="badge b-carregado">🚛 Carregado</span>';
+  if(n==='PROGRAMADO') return '<span class="badge b-programado">🗓 Programado</span>';
+  if(n==='CANCELADO') return '<span class="badge b-cancelado">❌ Cancelado</span>';
+  if(n==='FALTA PROGRAMAR') return '<span class="badge b-falta">⏳ Falta Prog.</span>';
+  if(n==='VAZIO') return '<span class="badge b-vazio">🔵 Vazio</span>';
+  if(n==='MANUTENÇÃO') return '<span class="badge b-manutencao">🔧 Manutenção</span>';
+  if(n==='ROTA') return '<span class="badge b-rota">🛣 Rota</span>';
+  if(n==='OFERTAR') return '<span class="badge b-ofertar">📢 Ofertar</span>';
+  return `<span class="badge b-vazio">${s}</span>`;
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function clearDashFilter(){
+  document.getElementById('dash-filter-date').value='';
+  renderDashboard();
+}
+
+function renderDashboard(){
+  const filterDate = document.getElementById('dash-filter-date').value;
+  const src = filterDate ? pedidos.filter(p=>p.dc===filterDate) : pedidos;
+
+  // Update label
+  const lbl = document.getElementById('dash-filter-label');
+  const totalLbl = document.getElementById('dash-total-label');
+  if(filterDate){
+    const [y,m,d]=filterDate.split('-');
+    lbl.textContent=`Exibindo: ${d}/${m}/${y}`;
+    totalLbl.textContent=`${src.length} pedido(s) nesta data`;
+  } else {
+    lbl.textContent='';
+    totalLbl.textContent=`${pedidos.length} pedido(s) no total`;
+  }
+
+  const counts = {};
+  src.forEach(p=>{ const s=normalizeStatus(p.status); counts[s]=(counts[s]||0)+1; });
+  document.getElementById('kpi-carregado').textContent = counts['CARREGADO']||0;
+  document.getElementById('kpi-entregue').textContent = counts['ENTREGUE']||0;
+  document.getElementById('kpi-programado').textContent = counts['PROGRAMADO']||0;
+  document.getElementById('kpi-falta').textContent = counts['FALTA PROGRAMAR']||0;
+  document.getElementById('kpi-cancelado').textContent = counts['CANCELADO']||0;
+
+  const total = src.length||1;
+  const LABEL_PLUGIN = {
+    id:'datalabels',
+    afterDatasetsDraw(chart){
+      const {ctx,data}=chart;
+      ctx.save();
+      chart.data.datasets.forEach((ds,di)=>{
+        chart.getDatasetMeta(di).data.forEach((bar,i)=>{
+          const val=ds.data[i];
+          if(!val&&val!==0) return;
+          const isBar=['bar'].includes(chart.config.type);
+          if(isBar){
+            const pct=((val/(src.length||1))*100).toFixed(0);
+            if(val===0) return;
+            const {x,y}=bar.tooltipPosition();
+            ctx.fillStyle='#F1F5F9';
+            ctx.font='bold 12px DM Sans,sans-serif';
+            ctx.textAlign='center';
+            ctx.textBaseline='bottom';
+            ctx.fillText(`${val} (${pct}%)`,x,y-4);
+          }
+        });
+      });
+      ctx.restore();
+    }
+  };
+
+  // ── 1. Status bar ──────────────────────────────────────────────────────────
+  const statusLabels=['Carregado','Entregue','Programado','Falta Prog.','Cancelado','Vazio'];
+  const statusKeys=['CARREGADO','ENTREGUE','PROGRAMADO','FALTA PROGRAMAR','CANCELADO','VAZIO'];
+  const statusColors=['#3B82F6','#10B981','#8B5CF6','#F97316','#EF4444','#64748B'];
+  const statusData=statusKeys.map(k=>counts[k]||0);
+  buildOrUpdate('chart-status','bar',{
+    labels:statusLabels,
+    datasets:[{label:'Pedidos',data:statusData,backgroundColor:statusColors,borderRadius:6,borderSkipped:false}]
+  },{
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.y} pedidos (${((c.parsed.y/total)*100).toFixed(1)}%)`}}},
+    scales:{x:{ticks:{color:'#64748B',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#64748B'},grid:{color:'rgba(30,45,74,0.8)'},beginAtZero:true}},
+    onClick(e,els){
+      if(!els.length) return;
+      const key=statusKeys[els[0].index];
+      openDrilldown(`Status: ${statusLabels[els[0].index]}`, src.filter(p=>normalizeStatus(p.status)===key));
+    }
+  },LABEL_PLUGIN);
+
+  // ── 2. Eficiência donut ────────────────────────────────────────────────────
+  const efEntregue=counts['ENTREGUE']||0;
+  const efProg=(counts['PROGRAMADO']||0)+(counts['CARREGADO']||0);
+  const efFalta=(counts['FALTA PROGRAMAR']||0)+(counts['CANCELADO']||0)+(counts['VAZIO']||0);
+  const efTot=efEntregue+efProg+efFalta||1;
+  const PIE_LABEL={
+    id:'pieLbl',
+    afterDatasetsDraw(chart){
+      const {ctx}=chart;
+      ctx.save();
+      chart.data.datasets.forEach((ds,di)=>{
+        chart.getDatasetMeta(di).data.forEach((arc,i)=>{
+          const val=ds.data[i]; if(!val) return;
+          const pct=((val/efTot)*100).toFixed(0);
+          const mid=arc.startAngle+(arc.endAngle-arc.startAngle)/2;
+          const r=(arc.outerRadius+arc.innerRadius)/2;
+          const x=arc.x+Math.cos(mid)*r; const y=arc.y+Math.sin(mid)*r;
+          ctx.fillStyle='#fff'; ctx.font='bold 11px DM Sans,sans-serif';
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          if(pct>5) ctx.fillText(`${val} (${pct}%)`,x,y);
+        });
+      });
+      ctx.restore();
+    }
+  };
+  buildOrUpdate('chart-eficiencia','doughnut',{
+    labels:['Entregues','Em andamento','Pendentes/Canc.'],
+    datasets:[{data:[efEntregue,efProg,efFalta],backgroundColor:['#10B981','#3B82F6','#EF4444'],hoverOffset:6,borderWidth:0}]
+  },{
+    plugins:{legend:{display:true,position:'bottom',labels:{color:'#94A3B8',font:{size:11},boxWidth:12}},
+      tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed} (${((c.parsed/efTot)*100).toFixed(1)}%)`}}},
+    cutout:'60%',
+    onClick(e,els){
+      if(!els.length) return;
+      const groups=[
+        src.filter(p=>normalizeStatus(p.status)==='ENTREGUE'),
+        src.filter(p=>['PROGRAMADO','CARREGADO'].includes(normalizeStatus(p.status))),
+        src.filter(p=>['FALTA PROGRAMAR','CANCELADO','VAZIO'].includes(normalizeStatus(p.status)))
+      ];
+      const lbl=['Entregues','Em andamento','Pendentes/Canc.'][els[0].index];
+      openDrilldown(`Eficiência: ${lbl}`, groups[els[0].index]);
+    }
+  },PIE_LABEL);
+
+  // ── 3. Top Clientes ────────────────────────────────────────────────────────
+  const cliCount={};
+  src.forEach(p=>{ if(p.cli) cliCount[p.cli]=(cliCount[p.cli]||0)+1; });
+  const cliSorted=Object.entries(cliCount).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  const cliTotal=cliSorted.reduce((s,x)=>s+x[1],0)||1;
+  const CLI_LABEL={
+    id:'cliLbl',
+    afterDatasetsDraw(chart){
+      const {ctx}=chart; ctx.save();
+      chart.data.datasets.forEach((ds,di)=>{
+        chart.getDatasetMeta(di).data.forEach((bar,i)=>{
+          const val=ds.data[i]; if(!val) return;
+          const pct=((val/cliTotal)*100).toFixed(0);
+          const {x,y}=bar.tooltipPosition();
+          ctx.fillStyle='#F1F5F9'; ctx.font='bold 11px DM Sans,sans-serif';
+          ctx.textAlign='left'; ctx.textBaseline='middle';
+          ctx.fillText(`${val} · ${pct}%`,x+5,y);
+        });
+      });
+      ctx.restore();
+    }
+  };
+  buildOrUpdate('chart-clientes','bar',{
+    labels:cliSorted.map(x=>x[0]),
+    datasets:[{label:'Pedidos',data:cliSorted.map(x=>x[1]),backgroundColor:['#3B82F6','#8B5CF6','#10B981','#F97316','#EF4444','#F59E0B','#22D3EE'],borderRadius:4,borderSkipped:false}]
+  },{
+    indexAxis:'y',
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.x} pedidos (${((c.parsed.x/cliTotal)*100).toFixed(1)}%)`}}},
+    scales:{x:{ticks:{color:'#64748B',font:{size:10}},grid:{color:'rgba(30,45,74,0.8)'},beginAtZero:true},y:{ticks:{color:'#94A3B8',font:{size:11}},grid:{display:false}}},
+    onClick(e,els){
+      if(!els.length) return;
+      const cli=cliSorted[els[0].index][0];
+      openDrilldown(`Cliente: ${cli}`, src.filter(p=>p.cli===cli));
+    }
+  },CLI_LABEL);
+
+  // ── 4. Fábricas donut ─────────────────────────────────────────────────────
+  const fabCount={};
+  src.forEach(p=>{ if(p.fab) fabCount[p.fab]=(fabCount[p.fab]||0)+1; });
+  const fabEntries=Object.entries(fabCount).sort((a,b)=>b[1]-a[1]);
+  const fabTot=fabEntries.reduce((s,x)=>s+x[1],0)||1;
+  const FAB_LABEL={
+    id:'fabLbl',
+    afterDatasetsDraw(chart){
+      const {ctx}=chart; ctx.save();
+      chart.data.datasets.forEach((ds,di)=>{
+        chart.getDatasetMeta(di).data.forEach((arc,i)=>{
+          const val=ds.data[i]; if(!val) return;
+          const pct=((val/fabTot)*100).toFixed(0);
+          const mid=arc.startAngle+(arc.endAngle-arc.startAngle)/2;
+          const r=(arc.outerRadius+arc.innerRadius)/2;
+          const x=arc.x+Math.cos(mid)*r; const y=arc.y+Math.sin(mid)*r;
+          ctx.fillStyle='#fff'; ctx.font='bold 11px DM Sans,sans-serif';
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          if(pct>6) ctx.fillText(`${val} (${pct}%)`,x,y);
+        });
+      });
+      ctx.restore();
+    }
+  };
+  buildOrUpdate('chart-fabricas','doughnut',{
+    labels:fabEntries.map(x=>x[0]),
+    datasets:[{data:fabEntries.map(x=>x[1]),backgroundColor:['#8B5CF6','#3B82F6','#10B981','#F97316','#EF4444'],borderWidth:0,hoverOffset:6}]
+  },{
+    plugins:{legend:{display:true,position:'bottom',labels:{color:'#94A3B8',font:{size:10},boxWidth:12}},
+      tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed} (${((c.parsed/fabTot)*100).toFixed(1)}%)`}}},
+    cutout:'55%',
+    onClick(e,els){
+      if(!els.length) return;
+      const fab=fabEntries[els[0].index][0];
+      openDrilldown(`Fábrica: ${fab}`, src.filter(p=>p.fab===fab));
+    }
+  },FAB_LABEL);
+
+  // ── 5. Frota status bar ───────────────────────────────────────────────────
+  const fCount={};
+  carregamento.forEach(v=>{ const s=normalizeStatus(v.status); fCount[s]=(fCount[s]||0)+1; });
+  const fEntries=Object.entries(fCount);
+  const fTot=fEntries.reduce((s,x)=>s+x[1],0)||1;
+  const FROTA_LABEL={
+    id:'frotaLbl',
+    afterDatasetsDraw(chart){
+      const {ctx}=chart; ctx.save();
+      chart.data.datasets.forEach((ds,di)=>{
+        chart.getDatasetMeta(di).data.forEach((bar,i)=>{
+          const val=ds.data[i]; if(!val) return;
+          const pct=((val/fTot)*100).toFixed(0);
+          const {x,y}=bar.tooltipPosition();
+          ctx.fillStyle='#F1F5F9'; ctx.font='bold 11px DM Sans,sans-serif';
+          ctx.textAlign='center'; ctx.textBaseline='bottom';
+          ctx.fillText(`${val} (${pct}%)`,x,y-4);
+        });
+      });
+      ctx.restore();
+    }
+  };
+  buildOrUpdate('chart-frota','bar',{
+    labels:fEntries.map(x=>x[0]),
+    datasets:[{label:'Veículos',data:fEntries.map(x=>x[1]),backgroundColor:['#8B5CF6','#3B82F6','#F59E0B','#22D3EE','#A855F7','#64748B'],borderRadius:4,borderSkipped:false}]
+  },{
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.y} veículos (${((c.parsed.y/fTot)*100).toFixed(1)}%)`}}},
+    scales:{x:{ticks:{color:'#64748B',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#64748B'},grid:{color:'rgba(30,45,74,0.8)'},beginAtZero:true}},
+    onClick(e,els){
+      if(!els.length) return;
+      const key=fEntries[els[0].index][0];
+      const veics=carregamento.filter(v=>normalizeStatus(v.status)===key);
+      openDrilldownFrota(`Frota — ${key}`, veics);
+    }
+  },FROTA_LABEL);
+
+  // Table
+  const tableRows = filterDate ? src : pedidos.slice(-15).reverse();
+  const tbody = document.getElementById('dash-table-body');
+  tbody.innerHTML = tableRows.map(p=>`
+    <tr>
+      <td>${p.dc||'—'}</td><td>${p.de||'—'}</td>
+      <td><span style="font-size:12px;color:#94A3B8">${p.fab||'—'}</span></td>
+      <td style="font-weight:500">${p.cli||'—'}</td>
+      <td>${p.cid||'—'}</td>
+      <td><span style="font-family:monospace;background:#1E293B;padding:2px 8px;border-radius:5px;font-size:12px">${p.placa||'—'}</span></td>
+      <td>${statusBadge(p.status)}</td>
+      <td style="font-size:12px;color:#64748B">${p.loc||'—'}</td>
+    </tr>`).join('');
+}
+
+function buildOrUpdate(id, type, data, opts, extraPlugin){
+  if(charts[id]) { charts[id].destroy(); delete charts[id]; }
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  const plugins = extraPlugin ? [extraPlugin] : [];
+  charts[id] = new Chart(ctx, {type, data, options:{responsive:true, maintainAspectRatio:false, ...opts}, plugins});
+}
+
+// ─── PREVISÃO DE ENTREGA — Matriz Origem (Fábrica) → Destino (Cidade) ────────
+// Tempos em horas: ETA_MATRIX[fabrica_key][cidade_key]
+const ETA_MATRIX = {
+  'NACIONAL': {
+    'RECIFE':1,'OLINDA':1,'PAULISTA':1,'CAMARAGIBE':1,'ABREU E LIMA':1,'JABOATAO':1,'CABO DE SANTO AGOSTINHO':2,
+    'IPOJUCA':2,'CARUARU':4,'NAZARE DA MATA':2,'TIMBAUBA':2,'GOIANA':2,
+    'JOAO PESSOA':4,'CABEDELO':4,'SANTA RITA':4,'BAYEUX':4,
+    'NATAL':7,'MACAIBA':7,'PARNAMIRIM':7,'SAO GONÇALO':7,
+    'MACEIO':7,'ARAPIRACA':8,'SAO JOSE DA TAPERA':9,'PETROLINA':9,
+    'SALGUEIRO':5,'ARCOVERDE':4,'GARANHUNS':4,
+    'RIO FORMOSO':3,'BARREIROS':3,'PORTO DE PEDRAS':5,
+    'CAMACARI':9,'CANDEIAS':9,'SALVADOR':10,'FEIRA DE SANTANA':8,
+    'FORTALEZA':13,'PACATUBA':13,
+  },
+  'CSN CAAPORA': {
+    'RECIFE':2,'OLINDA':2,'PAULISTA':2,'ABREU E LIMA':2,'JABOATAO':2,'IPOJUCA':2,
+    'CARUARU':5,'NAZARE DA MATA':3,'GOIANA':1,
+    'JOAO PESSOA':2,'CABEDELO':2,'SANTA RITA':2,'BAYEUX':2,
+    'NATAL':5,'MACAIBA':5,'PARNAMIRIM':5,'SAO GONÇALO':5,
+    'MACEIO':8,'ARAPIRACA':9,'SAO JOSE DA TAPERA':10,'PETROLINA':10,
+    'SALGUEIRO':6,'ARCOVERDE':5,'GARANHUNS':5,
+    'RIO FORMOSO':4,'BARREIROS':4,'PORTO DE PEDRAS':4,
+    'CAMACARI':9,'CANDEIAS':9,'SALVADOR':10,'FEIRA DE SANTANA':8,
+    'FORTALEZA':12,'PACATUBA':12,
+  },
+  'VOTORANTIM': {
+    'RECIFE':3,'OLINDA':3,'PAULISTA':3,'ABREU E LIMA':3,'JABOATAO':3,'IPOJUCA':3,
+    'CARUARU':4,'NAZARE DA MATA':4,'GOIANA':3,
+    'JOAO PESSOA':5,'CABEDELO':5,'SANTA RITA':5,'BAYEUX':5,
+    'NATAL':8,'MACAIBA':8,'PARNAMIRIM':8,'SAO GONÇALO':8,
+    'MACEIO':9,'ARAPIRACA':10,'SAO JOSE DA TAPERA':11,'PETROLINA':6,
+    'SALGUEIRO':4,'ARCOVERDE':3,'GARANHUNS':3,
+    'RIO FORMOSO':5,'BARREIROS':5,'PORTO DE PEDRAS':6,
+    'CAMACARI':7,'CANDEIAS':7,'SALVADOR':8,'FEIRA DE SANTANA':6,
+    'FORTALEZA':14,'PACATUBA':14,
+  },
+  'MIN PAULISTA': {
+    'RECIFE':1,'OLINDA':1,'PAULISTA':1,'ABREU E LIMA':1,'JABOATAO':1,'IPOJUCA':2,
+    'CARUARU':4,'NAZARE DA MATA':2,'GOIANA':2,
+    'JOAO PESSOA':4,'CABEDELO':4,'SANTA RITA':4,'BAYEUX':4,
+    'NATAL':7,'MACAIBA':7,'PARNAMIRIM':7,'SAO GONÇALO':7,
+    'MACEIO':7,'ARAPIRACA':8,'SAO JOSE DA TAPERA':9,'PETROLINA':9,
+    'SALGUEIRO':5,'ARCOVERDE':4,'GARANHUNS':4,
+    'CAMACARI':9,'CANDEIAS':9,'SALVADOR':10,'FEIRA DE SANTANA':8,
+    'FORTALEZA':13,'PACATUBA':13,
+  },
+  'GALPAO': {
+    'RECIFE':1,'OLINDA':1,'PAULISTA':1,'ABREU E LIMA':1,'JABOATAO':1,'IPOJUCA':2,
+    'CARUARU':4,'NAZARE DA MATA':2,'GOIANA':2,
+    'JOAO PESSOA':4,'NATAL':7,'MACAIBA':7,'MACEIO':7,'ARAPIRACA':8,
+    'SAO JOSE DA TAPERA':9,'PETROLINA':9,'SALGUEIRO':5,'GARANHUNS':4,
+    'CAMACARI':9,'SALVADOR':10,'FORTALEZA':13,
+  },
+};
+
+// Normaliza string removendo acentos e maiúsculas
+function norm(s){ return (s||'').toUpperCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+// Encontra horas na tabela por match exato ou parcial
+function lookupETA(matrix, cidStr){
+  const c = norm(cidStr);
+  for(const [k,v] of Object.entries(matrix)){
+    if(norm(k)===c) return v;
+  }
+  for(const [k,v] of Object.entries(matrix)){
+    const kn=norm(k);
+    if(c.includes(kn)||kn.includes(c)) return v;
+  }
+  return null;
+}
+
+// Identifica qual fábrica-chave usar a partir do valor bruto
+function fabKey(fabStr){
+  const f = norm(fabStr);
+  if(f.includes('NACIONAL')) return 'NACIONAL';
+  if(f.includes('CSN')||f.includes('CAAPORA')||f.includes('ALHANDRA')) return 'CSN CAAPORA';
+  if(f.includes('VOTORANTIM')||f.includes('LARANJEIRAS')) return 'VOTORANTIM';
+  if(f.includes('PAULISTA')||f.includes('MIN')) return 'MIN PAULISTA';
+  if(f.includes('GALPAO')||f.includes('GALPÃO')) return 'GALPAO';
+  return null;
+}
+
+function previsaoEntrega(p){
+  if(normalizeStatus(p.status)!=='CARREGADO') return '<span style="color:var(--muted);font-size:12px">—</span>';
+  const fk = fabKey(p.fab);
+  if(!fk) return '<span style="font-size:11px;color:var(--muted)">Fábrica não mapeada</span>';
+  const matrix = ETA_MATRIX[fk];
+  const horas = lookupETA(matrix, p.cid);
+  if(horas===null) return '<span style="font-size:11px;color:var(--muted)">Destino não mapeado</span>';
+
+  const agora = new Date();
+  const entrega = new Date(agora.getTime() + horas*3600*1000);
+  const dd=String(entrega.getDate()).padStart(2,'0');
+  const mm=String(entrega.getMonth()+1).padStart(2,'0');
+  const hh=String(entrega.getHours()).padStart(2,'0');
+  const mi=String(entrega.getMinutes()).padStart(2,'0');
+  const cor = horas<=3?'#10B981':horas<=6?'#F59E0B':'#EF4444';
+  const fabLabel = fk.replace('CSN CAAPORA','CSN/Caaporã').replace('MIN PAULISTA','Min.Paulista');
+  return `<div style="font-size:11px;line-height:1.6">
+    <div style="font-weight:700;color:${cor}">~${horas}h · ${dd}/${mm} ${hh}:${mi}</div>
+    <div style="color:var(--muted);font-size:10px">📍 ${fabLabel} → ${p.cid||'?'}</div>
+  </div>`;
+}
+
+// ─── PEDIDOS TABLE ────────────────────────────────────────────────────────────
+function clearDateFilters(){
+  ['filter-dc-de','filter-de-de'].forEach(id=>{ document.getElementById(id).value=''; });
+  renderPedidosTable();
+}
+
+function clearDatabase(){
+  if(!confirm(`Tem certeza que deseja limpar toda a base de pedidos FOB?\n\nEsta ação removerá todos os ${pedidos.length} registros e não pode ser desfeita.`)) return;
+  pedidos = [];
+  save();
+  const cliSel = document.getElementById('filter-cliente');
+  while(cliSel.options.length > 1) cliSel.remove(1);
+  clearDateFilters();
+  renderPedidosTable();
+  showToast('🗑 Base de pedidos limpa com sucesso.', '#64748B');
+}
+
+function renderPedidosTable(){
+  const q = document.getElementById('pedidos-search').value.toLowerCase();
+  const fs = document.getElementById('filter-status').value;
+  const fc = document.getElementById('filter-cliente').value;
+  const dcDe = document.getElementById('filter-dc-de').value;
+  const deDe = document.getElementById('filter-de-de').value;
+
+  // Populate client filter
+  const cliSet = [...new Set(pedidos.map(p=>p.cli).filter(Boolean))];
+  const cliSel = document.getElementById('filter-cliente');
+  if(cliSel.options.length < 2){
+    cliSet.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; cliSel.appendChild(o); });
+  }
+
+  const filtered = pedidos.filter((p)=>{
+    if(fs && normalizeStatus(p.status)!==fs) return false;
+    if(fc && p.cli!==fc) return false;
+    if(q && !JSON.stringify(p).toLowerCase().includes(q)) return false;
+    if(dcDe && p.dc && p.dc !== dcDe) return false;
+    if(deDe && p.de && p.de !== deDe) return false;
+    return true;
+  });
+
+  const total = pedidos.length;
+  const showing = filtered.length;
+  document.getElementById('record-count').textContent = showing < total ? `${showing} de ${total} registros` : `${total} registros totais`;
+
+  const tbody = document.getElementById('pedidos-table-body');
+  tbody.innerHTML = filtered.map((p)=>{
+    const uid = String(p._uid);
+    const num = pedidos.findIndex(x=>String(x._uid)===uid)+1;
+    return `<tr>
+      <td style="color:var(--muted);font-size:11px">${num}</td>
+      <td>${p.dc||'—'}</td><td>${p.de||'—'}</td>
+      <td style="font-size:12px;color:#94A3B8">${p.fab||'—'}</td>
+      <td style="font-weight:500">${p.cli||'—'}</td>
+      <td>${p.cid||'—'}</td>
+      <td><span style="font-family:monospace;background:#1E293B;padding:2px 8px;border-radius:5px;font-size:12px">${p.placa||'—'}</span></td>
+      <td style="font-size:12px;color:#94A3B8">${p.motorista||'—'}</td>
+      <td>${statusBadge(p.status)}</td>
+      <td>${previsaoEntrega(p)}</td>
+      <td style="text-align:center">${p.vol||'—'}</td>
+      <td style="font-size:12px;color:#64748B;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.loc||'—'}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button data-uid="${uid}" onclick="openEdit(this.dataset.uid)" style="background:#1E293B;border:none;color:#60A5FA;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px">✏️</button>
+          <button data-uid="${uid}" onclick="deletePedido(this.dataset.uid)" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:5px 10px;color:#FCA5A5;cursor:pointer;font-size:12px;transition:.2s" onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── ADD PEDIDO ───────────────────────────────────────────────────────────────
+function autoFillMotoristaFOB(){
+  const placa = document.getElementById('f-placa').value.toUpperCase();
+  const v = carregamento.find(x=>x.placa===placa);
+  if(v && v.motorista) document.getElementById('f-motorista').value = v.motorista;
+}
+
+function addPedido(){
+  const p = {
+    _uid: genUid(),
+    dc: document.getElementById('f-data-carg').value,
+    de: document.getElementById('f-data-ent').value,
+    fab: document.getElementById('f-fabrica').value.toUpperCase(),
+    cli: document.getElementById('f-cliente').value.toUpperCase(),
+    cid: document.getElementById('f-cidade').value.toUpperCase(),
+    placa: document.getElementById('f-placa').value.toUpperCase(),
+    motorista: document.getElementById('f-motorista').value.toUpperCase(),
+    status: document.getElementById('f-status').value,
+    loc: document.getElementById('f-local').value,
+    vol: document.getElementById('f-volume').value
+  };
+  if(!p.fab || !p.cli || !p.status){ showToast('⚠️ Preencha Fábrica, Cliente e Status!','#F59E0B'); return; }
+  pedidos.push(p);
+  save();
+  clearForm();
+  renderPedidosTable();
+  renderDashboard();
+  showToast('✅ Pedido adicionado com sucesso!');
+}
+
+function clearForm(){
+  ['f-data-carg','f-data-ent','f-fabrica','f-cliente','f-cidade','f-placa','f-motorista','f-local','f-volume'].forEach(id=>{ document.getElementById(id).value=''; });
+  document.getElementById('f-status').value='';
+}
+
+function deletePedido(uid){
+  const i = pedidos.findIndex(x=>String(x._uid)===String(uid));
+  if(i<0) return;
+  if(!confirm('Excluir este pedido?')) return;
+  pedidos.splice(i,1);
+  save();
+  renderPedidosTable();
+  renderDashboard();
+}
+
+// ─── EDIT MODAL ───────────────────────────────────────────────────────────────
+function openEdit(uid){
+  const p = pedidos.find(x=>String(x._uid)===String(uid));
+  if(!p) return;
+  document.getElementById('edit-idx').value = String(p._uid);
+  document.getElementById('e-data-carg').value=p.dc||'';
+  document.getElementById('e-data-ent').value=p.de||'';
+  document.getElementById('e-volume').value=p.vol||'';
+  document.getElementById('e-fabrica').value=p.fab||'';
+  document.getElementById('e-cliente').value=p.cli||'';
+  document.getElementById('e-cidade').value=p.cid||'';
+  document.getElementById('e-placa').value=p.placa||'';
+  document.getElementById('e-motorista').value=p.motorista||'';
+  document.getElementById('e-status').value=p.status||'';
+  document.getElementById('e-local').value=p.loc||'';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function saveEdit(){
+  const uid = String(document.getElementById('edit-idx').value);
+  const i = pedidos.findIndex(x=>String(x._uid)===uid);
+  if(i<0){ showToast('⚠️ Registro não encontrado.','#F59E0B'); return; }
+  pedidos[i] = {
+    _uid: pedidos[i]._uid,
+    dc:document.getElementById('e-data-carg').value,
+    de:document.getElementById('e-data-ent').value,
+    vol:document.getElementById('e-volume').value,
+    fab:document.getElementById('e-fabrica').value.toUpperCase(),
+    cli:document.getElementById('e-cliente').value.toUpperCase(),
+    cid:document.getElementById('e-cidade').value.toUpperCase(),
+    placa:document.getElementById('e-placa').value.toUpperCase(),
+    motorista:document.getElementById('e-motorista').value.toUpperCase(),
+    status:document.getElementById('e-status').value,
+    loc:document.getElementById('e-local').value
+  };
+  save();
+  closeModal();
+  renderPedidosTable();
+  renderDashboard();
+  showToast('✅ Pedido atualizado!');
+}
+
+function closeModal(){ document.getElementById('edit-modal').classList.remove('open'); }
+document.getElementById('edit-modal').addEventListener('click', e=>{ if(e.target===document.getElementById('edit-modal')) closeModal(); });
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+function exportData(){
+  const hdr = 'Data Carg.,Data Entrega,Fábrica,Cliente,Cidade,Placa,Status,Localização,Volume\n';
+  const rows = pedidos.map(p=>[p.dc,p.de,p.fab,p.cli,p.cid,p.placa,p.status,p.loc,p.vol].join(',')).join('\n');
+  download('pedidos_fob.csv', hdr+rows);
+}
+
+function exportCarregamento(){
+  const hdr = 'Frota,Placa,Motorista,Tipo,Fábrica,Status,Destino,Cidade,Obs\n';
+  const rows = carregamento.map(v=>[v.frota,v.placa,v.motorista,v.tipo,v.fabrica,v.status,v.destino,v.cidade,v.obs].join(',')).join('\n');
+  download('relacao_carregamento.csv', hdr+rows);
+}
+
+function download(name, content){
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(content);
+  a.download = name;
+  a.click();
+}
+
+// ─── DROPZONE IMPORTAÇÃO ──────────────────────────────────────────────────────
+let dzParsedRows = [];
+let dzMode = 'substituir';
+
+// Mapeamento flexível de colunas do arquivo → campos internos
+const COL_MAP = {
+  dc:  ['data carg','data de carg','data carregamento','data_carg','datacarg','carregamento'],
+  de:  ['data entrega','data de entrega','data_entrega','dataentrega','entrega'],
+  fab: ['fabrica','fábrica','fab','origem','planta'],
+  cli: ['cliente','client','razão social','razao social'],
+  cid: ['cidade','city','municipio','município','destino cidade'],
+  placa:['placa','plate','veiculo placa','veículo'],
+  status:['status','status do pedido','situacao','situação','status pedido'],
+  loc: ['localização','localizacao','local','comentario','comentário','obs','observacao','observação'],
+  vol: ['volume','vol','quantidade','qtd','tonelada','ton']
+};
+
+function dzFindCol(headers, field){
+  const aliases = COL_MAP[field];
+  for(const h of headers){
+    const hn = h.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    for(const a of aliases){
+      const an = a.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      if(hn.includes(an)) return h;
+    }
+  }
+  return null;
+}
+
+function dzDragOver(e){ e.preventDefault(); document.getElementById('dropzone').classList.add('dragover'); }
+function dzDragLeave(){ document.getElementById('dropzone').classList.remove('dragover'); }
+function dzDrop(e){
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if(file) dzProcessFile(file);
+}
+function dzFileSelect(e){ const file = e.target.files[0]; if(file) dzProcessFile(file); }
+
+function dzProcessFile(file){
+  const ext = file.name.split('.').pop().toLowerCase();
+  const dz = document.getElementById('dropzone');
+  const reader = new FileReader();
+
+  if(ext==='csv'){
+    reader.onload = ev => dzParseCSV(ev.target.result, file.name);
+    reader.readAsText(file, 'UTF-8');
+  } else if(['xlsx','xls'].includes(ext)){
+    reader.onload = ev => dzParseXLSX(ev.target.result, file.name);
+    reader.readAsArrayBuffer(file);
+  } else {
+    dz.classList.add('error');
+    document.getElementById('dz-icon').textContent='⚠️';
+    document.getElementById('dz-title').textContent='Formato não suportado';
+    document.getElementById('dz-sub').textContent='Use arquivos .xlsx, .xls ou .csv UTF-8.';
+    setTimeout(()=>{ dz.classList.remove('error'); document.getElementById('dz-icon').textContent='📂'; document.getElementById('dz-title').textContent='Importar Base de Dados'; document.getElementById('dz-sub').innerHTML='Arraste e solte um arquivo <strong>Excel (.xlsx)</strong> ou <strong>CSV UTF-8 (.csv)</strong> aqui, ou clique para selecionar'; }, 3000);
+  }
+}
+
+function dzParseCSV(text, fname){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length < 2){ dzError('CSV vazio ou sem dados.'); return; }
+  // Detect delimiter
+  const delim = lines[0].includes(';') ? ';' : ',';
+  const headers = lines[0].split(delim).map(h=>h.trim().replace(/^"|"$/g,''));
+  const rows = lines.slice(1).map(line=>{
+    const cells = line.split(delim).map(c=>c.trim().replace(/^"|"$/g,''));
+    const obj={};
+    headers.forEach((h,i)=>{ obj[h]=cells[i]||''; });
+    return obj;
+  }).filter(r=>Object.values(r).some(v=>v));
+  dzShowPreview(headers, rows, fname);
+}
+
+function dzParseXLSX(buffer, fname){
+  try {
+    const wb = XLSX.read(buffer, {type:'array', cellDates:true});
+    // Prefer sheet named RELAÇÃO_PEDIDOS_FOB or PEDIDOS, else first sheet
+    let sheetName = wb.SheetNames.find(n=>n.toUpperCase().includes('PEDIDO')||n.toUpperCase().includes('FOB')) || wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    // Try header row detection: scan first 5 rows for the one with most non-empty cells
+    const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+    let headerRow = 0;
+    let maxNonEmpty = 0;
+    for(let i=0;i<Math.min(5,raw.length);i++){
+      const ne = raw[i].filter(c=>String(c).trim()).length;
+      if(ne>maxNonEmpty){ maxNonEmpty=ne; headerRow=i; }
+    }
+    const headers = raw[headerRow].map(h=>String(h).trim());
+    const rows = raw.slice(headerRow+1).map(cells=>{
+      const obj={};
+      headers.forEach((h,i)=>{ 
+        let v = cells[i];
+        if(v instanceof Date){ v=v.toISOString().slice(0,10); }
+        else { v=String(v===undefined||v===null?'':v).trim(); }
+        obj[h]=v;
+      });
+      return obj;
+    }).filter(r=>Object.values(r).some(v=>v));
+    dzShowPreview(headers, rows, fname+' ('+sheetName+')');
+  } catch(e){ dzError('Erro ao ler o arquivo Excel: '+e.message); }
+}
+
+function dzShowPreview(headers, rows, fname){
+  dzParsedRows = rows;
+  const dz = document.getElementById('dropzone');
+  dz.classList.remove('error'); dz.classList.add('success');
+  document.getElementById('dz-icon').textContent='✅';
+  document.getElementById('dz-title').textContent=fname;
+  document.getElementById('dz-sub').textContent=`${rows.length} linha(s) encontradas. Confira a prévia abaixo e confirme a importação.`;
+
+  // Col mapping display
+  const mapped={}, unmapped=[];
+  const colColors={dc:'#3B82F6',de:'#10B981',fab:'#8B5CF6',cli:'#F97316',cid:'#22D3EE',placa:'#F59E0B',status:'#EF4444',loc:'#64748B',vol:'#A855F7'};
+  const colLabels={dc:'Data Carg.',de:'Data Entrega',fab:'Fábrica',cli:'Cliente',cid:'Cidade',placa:'Placa',status:'Status',loc:'Localização',vol:'Volume'};
+  Object.keys(COL_MAP).forEach(field=>{
+    const found = dzFindCol(headers,field);
+    if(found) mapped[field]=found; else unmapped.push(colLabels[field]);
+  });
+  document.getElementById('dz-col-map').innerHTML = Object.entries(mapped).map(([f,h])=>`
+    <div class="dz-col-item"><div class="dz-col-dot" style="background:${colColors[f]}"></div><span style="color:var(--muted)">${colLabels[f]}:</span>&nbsp;<span style="color:var(--text);font-weight:500">"${h}"</span></div>
+  `).join('') + (unmapped.length?`<div class="dz-col-item" style="grid-column:1/-1"><div class="dz-col-dot" style="background:#64748B"></div><span style="color:var(--muted)">Não mapeados: ${unmapped.join(', ')}</span></div>`:'');
+
+  document.getElementById('dz-col-info').textContent=`Arquivo: ${fname} · ${rows.length} registros · ${headers.length} colunas`;
+
+  // Preview table (first 5 rows)
+  const preview5 = rows.slice(0,5);
+  const visibleCols = headers.slice(0,8);
+  document.getElementById('dz-preview-thead').innerHTML=`<tr>${visibleCols.map(h=>`<th style="padding:8px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);white-space:nowrap">${h}</th>`).join('')}${headers.length>8?'<th style="padding:8px 12px;font-size:11px;color:var(--muted)">…</th>':''}</tr>`;
+  document.getElementById('dz-preview-tbody').innerHTML=preview5.map(r=>`<tr>${visibleCols.map(h=>`<td style="padding:7px 12px;font-size:12px;border-bottom:1px solid rgba(30,45,74,0.4);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis">${r[h]||'—'}</td>`).join('')}${headers.length>8?'<td style="padding:7px 12px;color:var(--muted)">…</td>':''}</tr>`).join('');
+
+  document.getElementById('dz-preview').classList.add('show');
+  // Store headers for import
+  document.getElementById('dz-preview').dataset.headers = JSON.stringify(headers);
+  document.getElementById('dz-preview').dataset.mapped = JSON.stringify(mapped);
+}
+
+function setDzMode(mode){
+  dzMode=mode;
+  document.getElementById('mode-substituir').classList.toggle('active', mode==='substituir');
+  document.getElementById('mode-acrescentar').classList.toggle('active', mode==='acrescentar');
+  document.getElementById('dz-mode-desc').textContent = mode==='substituir'
+    ? 'Os pedidos atuais serão substituídos pela nova base importada.'
+    : 'Os novos registros serão acrescentados aos pedidos já existentes.';
+}
+
+function dzConfirmImport(){
+  const mapped = JSON.parse(document.getElementById('dz-preview').dataset.mapped||'{}');
+  const imported = dzParsedRows.map(row=>{
+    function g(f){ return mapped[f]?String(row[mapped[f]]||'').trim():'' }
+    // Normalize date: accept dd/mm/yyyy or yyyy-mm-dd
+    function normDate(v){
+      if(!v) return '';
+      if(/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0,10);
+      const m = v.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+      if(m){ const y=m[3].length===2?'20'+m[3]:m[3]; return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; }
+      return v;
+    }
+    return {
+      _uid: genUid(),
+      dc: normDate(g('dc')),
+      de: normDate(g('de')),
+      fab: g('fab').toUpperCase(),
+      cli: g('cli').toUpperCase(),
+      cid: g('cid').toUpperCase(),
+      placa: g('placa').toUpperCase(),
+      status: g('status').toUpperCase(),
+      loc: g('loc'),
+      vol: g('vol')
+    };
+  }).filter(p=>p.fab||p.cli||p.placa||p.status);
+
+  if(dzMode==='substituir') pedidos=imported;
+  else pedidos=[...pedidos,...imported];
+  save();
+  dzDiscard();
+  renderPedidosTable();
+  renderDashboard();
+  // Reset cliente filter so new clients show
+  const cliSel=document.getElementById('filter-cliente');
+  while(cliSel.options.length>1) cliSel.remove(1);
+  showToast(`✅ ${imported.length} pedidos importados com sucesso!`);
+}
+
+function dzDiscard(){
+  dzParsedRows=[];
+  const dz=document.getElementById('dropzone');
+  dz.classList.remove('success','error','dragover');
+  document.getElementById('dz-icon').textContent='📂';
+  document.getElementById('dz-title').textContent='Importar Base de Dados';
+  document.getElementById('dz-sub').innerHTML='Arraste e solte um arquivo <strong>Excel (.xlsx)</strong> ou <strong>CSV UTF-8 (.csv)</strong> aqui, ou clique para selecionar';
+  document.getElementById('dz-preview').classList.remove('show');
+  document.getElementById('dz-file-input').value='';
+}
+
+function dzError(msg){
+  const dz=document.getElementById('dropzone');
+  dz.classList.add('error');
+  document.getElementById('dz-icon').textContent='⚠️';
+  document.getElementById('dz-title').textContent='Erro na importação';
+  document.getElementById('dz-sub').textContent=msg;
+  setTimeout(()=>dzDiscard(),4000);
+}
+
+// ─── CARREGAMENTO ─────────────────────────────────────────────────────────────
+function renderCarregamento(){
+  const stats = {};
+  carregamento.forEach(v=>{ const s=normalizeStatus(v.status); stats[s]=(stats[s]||0)+1; });
+  document.getElementById('c-carregado').textContent = stats['CARREGADO']||0;
+  document.getElementById('c-programado').textContent = stats['PROGRAMADO']||0;
+  document.getElementById('c-manutencao').textContent = stats['MANUTENÇÃO']||0;
+  document.getElementById('c-rota').textContent = stats['ROTA']||0;
+
+  // Alerts
+  const alertArea = document.getElementById('alert-area');
+  const mantVeics = carregamento.filter(v=>normalizeStatus(v.status)==='MANUTENÇÃO');
+  const ofertarVeics = carregamento.filter(v=>normalizeStatus(v.status)==='OFERTAR');
+  let alerts = '';
+  if(mantVeics.length) alerts+=`<div class="alert-banner alert-warn">⚠️ <b>${mantVeics.length} veículo(s) em manutenção</b>: ${mantVeics.map(v=>v.placa).join(', ')} — Verifique prazo de retorno!</div>`;
+  if(ofertarVeics.length) alerts+=`<div class="alert-banner alert-info">📢 <b>${ofertarVeics.length} veículo(s) disponível(is) para oferta</b>: ${ofertarVeics.map(v=>v.placa).join(', ')}</div>`;
+  const propria = carregamento.filter(v=>v.frota==='PROPRIA').length;
+  const agrega = carregamento.filter(v=>v.frota==='AGREGADO').length;
+  alerts+=`<div class="alert-banner alert-success">🚛 Frota: <b>${propria} próprios</b> + <b>${agrega} agregados</b> = <b>${propria+agrega} veículos ativos</b></div>`;
+  alertArea.innerHTML = alerts;
+
+  // Charts
+  buildOrUpdate('chart-frota-tipo','doughnut',{
+    labels:['Própria','Agregado','Terceiro'],
+    datasets:[{data:[propria,agrega,carregamento.filter(v=>v.frota==='TERCEIRO').length],backgroundColor:['#3B82F6','#8B5CF6','#10B981'],borderWidth:0}]
+  },{plugins:{legend:{display:false}},cutout:'60%'});
+
+  buildOrUpdate('chart-carg-status','bar',{
+    labels:Object.keys(stats),
+    datasets:[{label:'Veículos',data:Object.values(stats),backgroundColor:['#8B5CF6','#3B82F6','#F59E0B','#22D3EE','#A855F7','#64748B'],borderRadius:4,borderSkipped:false}]
+  },{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748B',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#64748B'},grid:{color:'rgba(30,45,74,0.8)'},beginAtZero:true}}});
+
+  renderVeiculos();
+}
+
+function renderVeiculos(){
+  const q = document.getElementById('veiculo-search').value.toLowerCase();
+  const ff = document.getElementById('filter-frota').value;
+  const fs = document.getElementById('filter-cstatus').value;
+  const filtered = carregamento.filter(v=>{
+    if(ff && v.frota!==ff) return false;
+    if(fs && normalizeStatus(v.status)!==fs) return false;
+    if(q && !(v.placa+v.motorista).toLowerCase().includes(q)) return false;
+    return true;
+  });
+  document.getElementById('veiculo-grid').innerHTML = filtered.map((v,i)=>{
+    const orig = carregamento.indexOf(v);
+    const colors = {CARREGADO:'#3B82F6',PROGRAMADO:'#8B5CF6',MANUTENÇÃO:'#F59E0B',ROTA:'#22D3EE',OFERTAR:'#A855F7',VAZIO:'#64748B'};
+    const c = colors[normalizeStatus(v.status)]||'#64748B';
+    return `<div class="veiculo-card" style="border-left:3px solid ${c}">
+      <div class="vcard-top">
+        <div>
+          <div class="vcard-placa">${v.placa}</div>
+          <div class="vcard-tipo">${v.tipo||'—'} · ${v.frota}</div>
+        </div>
+        ${statusBadge(v.status)}
+      </div>
+      <div class="vcard-motor">${v.motorista||'—'}</div>
+      <div class="vcard-fab">${v.fabrica||'—'}</div>
+      ${v.destino?`<div style="font-size:11px;color:#60A5FA;margin-top:6px">→ ${v.destino}${v.cidade?' / '+v.cidade:''}</div>`:''}
+      ${v.obs?`<div style="font-size:11px;color:#94A3B8;margin-top:4px">${v.obs}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function autoFillVeiculo(){
+  const placa = document.getElementById('c-placa').value.toUpperCase();
+  const v = carregamento.find(x=>x.placa===placa);
+  document.getElementById('c-motorista').value = v?v.motorista:'';
+  document.getElementById('c-tipo').value = v?v.tipo:'';
+}
+
+function updateVeiculo(){
+  const placa = document.getElementById('c-placa').value.toUpperCase();
+  const status = document.getElementById('c-status-new').value;
+  if(!placa||!status){ showToast('⚠️ Informe Placa e Novo Status!','#F59E0B'); return; }
+  const idx = carregamento.findIndex(v=>v.placa===placa);
+  const oldStatus = idx>=0 ? carregamento[idx].status : '';
+  if(idx>=0){
+    const oldS = carregamento[idx].status;
+    carregamento[idx].status = status;
+    carregamento[idx].fabrica = document.getElementById('c-fabrica').value || carregamento[idx].fabrica;
+    carregamento[idx].obs = document.getElementById('c-obs').value || carregamento[idx].obs;
+    save();
+    if(normalizeStatus(oldS)!==normalizeStatus(status)){
+      triggerFlash(`Veículo ${placa}`, `Status alterado: ${oldS} → ${status}`, status);
+    }
+  } else {
+    showToast('⚠️ Placa não encontrada na frota!','#F59E0B'); return;
+  }
+  ['c-placa','c-motorista','c-tipo','c-status-new','c-fabrica','c-obs'].forEach(id=>{ document.getElementById(id).value=''; });
+  renderCarregamento();
+  showToast(`✅ Veículo ${placa} atualizado para ${status}!`);
+}
+
+// ─── FLASH ALERTS ─────────────────────────────────────────────────────────────
+function triggerFlash(title, msg, status){
+  const colors = {MANUTENÇÃO:'alert-warn',CARREGADO:'alert-info',PROGRAMADO:'alert-success',ROTA:'alert-info',OFERTAR:'alert-success',VAZIO:'alert-danger'};
+  const cls = colors[normalizeStatus(status)]||'alert-info';
+  const fc = document.getElementById('flash-container');
+  const div = document.createElement('div');
+  div.className = `flash ${cls}`;
+  div.innerHTML = `<div class="flash-title">${title}</div><div style="font-size:12px;opacity:.8">${msg}</div><button class="flash-close" onclick="this.parentElement.remove()">×</button>`;
+  fc.appendChild(div);
+  setTimeout(()=>div.classList.add('show'),50);
+  setTimeout(()=>{ div.classList.remove('show'); setTimeout(()=>div.remove(),400); },5000);
+}
+
+// ─── SUGGESTIONS ─────────────────────────────────────────────────────────────
+function showSug(inputId, sugId, options){
+  const val = document.getElementById(inputId).value.toUpperCase();
+  const filtered = options.filter(o=>o.toUpperCase().includes(val));
+  const box = document.getElementById(sugId);
+  if(!filtered.length){ box.classList.remove('open'); return; }
+  box.innerHTML = filtered.map(o=>`<div class="sug-item" onmousedown="setSug('${inputId}','${sugId}','${o}')">${o}</div>`).join('');
+  box.classList.add('open');
+}
+function setSug(inputId, sugId, val){
+  document.getElementById(inputId).value=val;
+  document.getElementById(sugId).classList.remove('open');
+}
+function hideSug(sugId){ setTimeout(()=>document.getElementById(sugId).classList.remove('open'),200); }
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function showToast(msg, color='#10B981'){
+  const t = document.getElementById('toast');
+  t.textContent=msg;
+  t.style.background=color;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function initApp(){
+  renderDashboard();
+  setTimeout(()=>{
+    const mantVeics = carregamento.filter(v=>normalizeStatus(v.status)==='MANUTENÇÃO');
+    if(mantVeics.length) triggerFlash('Alerta de Frota', `${mantVeics.length} veículo(s) em manutenção aguardando`, 'MANUTENÇÃO');
+  }, 1200);
+}
+
+// ─── DRILLDOWN ────────────────────────────────────────────────────────────────
+function openDrilldown(title, rows){
+  document.getElementById('dd-title').textContent=`🔍 ${title}`;
+  document.getElementById('dd-summary').textContent=`${rows.length} registro(s) encontrado(s)`;
+  document.getElementById('dd-thead').innerHTML=`<tr>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Data Carg.</th>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Data Entrega</th>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Fábrica</th>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Cliente</th>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Cidade</th>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Placa</th>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Motorista</th>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Status</th>
+  </tr>`;
+  document.getElementById('dd-tbody').innerHTML = rows.length
+    ? rows.map(p=>`<tr>
+        <td style="padding:8px 12px;font-size:12px;border-bottom:1px solid rgba(30,45,74,0.4)">${p.dc||'—'}</td>
+        <td style="padding:8px 12px;font-size:12px;border-bottom:1px solid rgba(30,45,74,0.4)">${p.de||'—'}</td>
+        <td style="padding:8px 12px;font-size:12px;border-bottom:1px solid rgba(30,45,74,0.4);color:#94A3B8">${p.fab||'—'}</td>
+        <td style="padding:8px 12px;font-size:12px;border-bottom:1px solid rgba(30,45,74,0.4);font-weight:500">${p.cli||'—'}</td>
+        <td style="padding:8px 12px;font-size:12px;border-bottom:1px solid rgba(30,45,74,0.4)">${p.cid||'—'}</td>
+        <td style="padding:8px 12px;font-size:12px;border-bottom:1px solid rgba(30,45,74,0.4)"><span style="font-family:monospace;background:#1E293B;padding:2px 8px;border-radius:5px">${p.placa||'—'}</span></td>
+        <td style="padding:8px 12px;font-size:12px;border-bottom:1px solid rgba(30,45,74,0.4);color:#94A3B8">${p.motorista||'—'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid rgba(30,45,74,0.4)">${statusBadge(p.status)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Nenhum registro neste grupo</td></tr>`;
+  document.getElementById('drilldown-modal').classList.add('open');
+}
+
+function openDrilldownFrota(title, veics){
+  document.getElementById('dd-title').textContent=`🔍 ${title}`;
+  document.getElementById('dd-summary').textContent=`${veics.length} veículo(s) neste status`;
+  document.getElementById('dd-thead').innerHTML=`<tr>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Frota</th>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Placa</th>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Motorista</th>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Tipo</th>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Fábrica</th>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Destino</th>
+    <th style="padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)">Status</th>
+  </tr>`;
+  document.getElementById('dd-tbody').innerHTML = veics.length
+    ? veics.map(v=>`<tr>
+        <td style="padding:8px 12px;font-size:12px;border-bottom:1px solid rgba(30,45,74,0.4);color:#94A3B8">${v.frota||'—'}</td>
+        <td style="padding:8px 12px;font-size:12px;border-bottom:1px solid rgba(30,45,74,0.4)"><span style="font-family:monospace;background:#1E293B;padding:2px 8px;border-radius:5px">${v.placa||'—'}</span></td>
+        <td style="padding:8px 12px;font-size:12px;border-bottom:1px solid rgba(30,45,74,0.4);font-weight:500">${v.motorista||'—'}</td>
+        <td style="padding:8px 12px;font-size:12px;border-bottom:1px solid rgba(30,45,74,0.4);color:#94A3B8">${v.tipo||'—'}</td>
+        <td style="padding:8px 12px;font-size:12px;border-bottom:1px solid rgba(30,45,74,0.4)">${v.fabrica||'—'}</td>
+        <td style="padding:8px 12px;font-size:12px;border-bottom:1px solid rgba(30,45,74,0.4)">${v.destino||'—'}${v.cidade?' / '+v.cidade:''}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid rgba(30,45,74,0.4)">${statusBadge(v.status)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Nenhum veículo neste status</td></tr>`;
+  document.getElementById('drilldown-modal').classList.add('open');
+}
+
+document.getElementById('drilldown-modal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('drilldown-modal')) document.getElementById('drilldown-modal').classList.remove('open');
+});
+</script>
+</body>
+</html>
